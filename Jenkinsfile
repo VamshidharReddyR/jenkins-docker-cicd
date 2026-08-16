@@ -16,7 +16,7 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                sh 'python3 -m pytest'
+                sh 'python3 -m pytest --junitxml=test-results.xml'
             }
         }
 
@@ -28,6 +28,10 @@ pipeline {
     }
 
     post {
+        always {
+            junit 'test-results.xml'
+        }
+
         success {
             echo 'Pipeline completed successfully.'
         }
