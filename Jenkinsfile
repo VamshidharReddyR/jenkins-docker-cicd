@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = 'jenkins-docker-cicd'
+        CONTAINER_NAME = 'jenkins-docker-cicd'
+        APP_PORT = '5000'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -22,7 +28,30 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t jenkins-docker-cicd:${BUILD_NUMBER} .'
+                sh 'docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .'
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                sh '''
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
+
+                    docker run -d \
+                        --name ${CONTAINER_NAME} \
+                        -p ${APP_PORT}:5000 \
+                        ${IMAGE_NAME}:${BUILD_NUMBER}
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                    sleep 5
+                    curl --fail http://localhost:${APP_PORT}/health
+                '''
             }
         }
     }
@@ -33,7 +62,7 @@ pipeline {
         }
 
         success {
-            echo 'Pipeline completed successfully.'
+            echo 'CI/CD pipeline completed successfully.'
         }
 
         failure {
